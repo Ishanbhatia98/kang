@@ -1,0 +1,8 @@
+
+--in alembic.ini
+sqlalchemy.url = mysql+mysqldb://:@localhost/kang
+
+--in migrations/env.py
+from kang.database import Base,SQLALCHEMY_DATABASE_URL
+from domains import org_template_evaluation, org_template_evaluation_criteria, org_template_evaluation_requirement, org_template_evaluation_requirement_options
+target_metadata = Base.metadata

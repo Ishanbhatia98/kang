@@ -1,0 +1,17 @@
+import os
+
+ENV = 'local'
+
+
+#---DATABASES---
+#POSTGRES
+# POSTGRES_USERNAME  = os.getenv('POSTGRES_USERNAME')
+# POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD')
+# POSTGRES_HOSTNAME = os.getenv("POSTGRES_HOSTNAME", '127.0.0.1:5433')
+# POSTGRES_DB_NAME = os.getenv('POSTGRES_DB_NAME','kang')
+
+#MYSQL
+MYSQL_USERNAME  = os.getenv('MYSQL_USERNAME', '')
+MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', '')
+MYSQL_HOSTNAME = os.getenv('MYSQL_HOSTNAME','localhost')
+MYSQL_DBNAME = os.getenv('MYSQL_DBNAME','kang')
