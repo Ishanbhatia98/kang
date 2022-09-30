@@ -47,7 +47,7 @@ def upload_file(file: UploadFile):
 
 
 class Field(BaseModel):
-    file_column_in_source:str
+    file_column_in_source:str|None=None
     file_column_in_target:str
     default_value:str|None=None
 
@@ -72,10 +72,15 @@ def parse_and_validate_file_fields(file_fields:FileFields):
 
         source_fields.append(source_field or f'default:{default_value}')
         target_fields.append(target_field)
-        target_source_field_map[target_field] = source_field
+        target_source_field_map[target_field] = source_field or f'default:{default_value}'
     
     #getting data as a pandas df
     file_data = get_file_data(file_fields.file_id, file_fields.extension)
+    
+
+    #filling nan as 0
+    file_data = file_data.fillna(0)
+
     number_of_entries = file_data.shape[0] 
     
     #saving data in tables
