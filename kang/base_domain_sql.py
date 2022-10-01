@@ -73,12 +73,11 @@ class BaseModelService:
             raise ValidationError("Invalid key mapping found while updating database") from e
 
         self.db.add(model_obj) #Adding record to db with savepoint
-        # try:
-        if True:
+        try:
             self.db.commit() # Making data permanent in the db, Error can come here.
-        # except Exception as e:
-        #     self.db.rollback()
-        #     raise ValidationError(e) from e
+        except Exception as e:
+            self.db.rollback()
+            raise ValidationError(e) from e
         return model_obj
 
     def update(self,model_object,**new_data):

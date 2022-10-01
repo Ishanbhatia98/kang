@@ -12,16 +12,13 @@ from domains.org_template_evaluation_criteria import OrgTemplateEvaluationCriter
 from domains.org_template_evaluation_requirement import OrgTemplateEvaluationRequirementService
 from domains.org_template_evaluation_requirement_options import OrgTemplateEvaluationRequirementOptionsService
 from collections import defaultdict 
+from schema.file_parser import Field, FileFields
 
 logger = GetLogger(__name__)
 router = APIRouter(prefix='/web/v0', tags=['FILE-PARSER'])
 
 @router.post('/upload-file/', status_code=status.HTTP_201_CREATED)
 def upload_file(file: UploadFile):
-    #csv/xlsx file
-    #store in temporary folder
-    #generate file_id for the uploaded file
-    #parse file and return column names
     file_id = token_hex(7).lower()
     filename = file.filename
     if '.' not in filename:
@@ -46,21 +43,12 @@ def upload_file(file: UploadFile):
     }
 
 
-class Field(BaseModel):
-    file_column_in_source:str|None=None
-    file_column_in_target:str
-    default_value:str|None=None
 
-class FileFields(BaseModel):
-    extension:str #choice b/w csv or xlsx
-    file_id:str
-    fields:list[Field]
 
 @router.post('/validate-fields/', status_code=status.HTTP_200_OK)
 def parse_and_validate_file_fields(file_fields:FileFields):
     file_id = file_fields.file_id
     fields = file_fields.fields
-    source_fields, target_fields = [], []
     target_source_field_map = defaultdict(lambda:None)
 
     #validating fields, mandatory fields
@@ -69,23 +57,19 @@ def parse_and_validate_file_fields(file_fields:FileFields):
         default_value = fields[i].default_value
         if target_field in required_fields and source_field is None and default_value is None :
             raise ValidationError(f'{target_field} is a required field, please provide a default value')
-
-        source_fields.append(source_field or f'default:{default_value}')
-        target_fields.append(target_field)
         target_source_field_map[target_field] = source_field or f'default:{default_value}'
     
     #getting data as a pandas df
     file_data = get_file_data(file_fields.file_id, file_fields.extension)
     
-
     #filling nan as 0
     file_data = file_data.fillna(0)
 
     number_of_entries = file_data.shape[0] 
     
-    #saving data in tables
-    #org_template_evaluation_target_fields = ['template_name'] 
-    # #ote
+    #---saving data in tables
+    
+    #--org_template_evaluation_target_fields
     if 'default:' not in target_source_field_map['template_name']:
         template_name = list(file_data[target_source_field_map['template_name']])
     else:
@@ -97,15 +81,14 @@ def parse_and_validate_file_fields(file_fields:FileFields):
     )
 
 
-    #org_template_evaluation_criteria_target_fields = ['criteria_name', 'criteria_priority'] 
-    # #otec
+    #--org_template_evaluation_criteria_target_fields
     if 'default:' not in target_source_field_map['criteria_name']:
         criteria_name = list(file_data[target_source_field_map['criteria_name']])
     else:
         default_value = target_source_field_map['criteria_name'].split(':')[1]
         criteria_name = [default_value for _ in range(number_of_entries)] 
 
-    #optional
+    #-optional
     if target_source_field_map['criteria_priority'] and 'default:' not in target_source_field_map['criteria_priority']:
         criteria_priority = list(file_data[target_source_field_map['criteria_priority']])
     elif target_source_field_map['criteria_priority']:
@@ -120,13 +103,7 @@ def parse_and_validate_file_fields(file_fields:FileFields):
         priority=criteria_priority
     )
 
-    # org_template_evaluation_requirement_target_fields = [
-    #     'requirement_name', 
-    #     'requirement_description',
-    #     'requirement_priority',
-    #     'answer_type'
-    # ] 
-    #oter
+    #--org_template_evaluation_requirement_target_fields 
     if 'default:' not in target_source_field_map['requirement_name']:
         requirement_name = list(file_data[target_source_field_map['requirement_name']])
     else:
@@ -139,7 +116,7 @@ def parse_and_validate_file_fields(file_fields:FileFields):
         default_value = target_source_field_map['requirement_description'].split(':')[1]
         requirement_description = [default_value for _ in range(number_of_entries)] 
     
-    #optional
+    #-optional
     if  target_source_field_map['requirement_priority'] and 'default:' not in target_source_field_map['requirement_priority']:
         requirement_priority = list(file_data[target_source_field_map['requirement_priority']])
     elif  target_source_field_map['requirement_priority']:
@@ -166,8 +143,7 @@ def parse_and_validate_file_fields(file_fields:FileFields):
     )
 
     
-    #org_template_evaluation_requirement_options_target_fields = ['requirement_options'] 
-    # #otero
+    #--org_template_evaluation_requirement_options_target_fields
     if target_source_field_map['requirement_options'] and 'default:' not in target_source_field_map['requirement_options']:
         requirement_options = list(file_data[target_source_field_map['requirement_options']])
     elif target_source_field_map['requirement_options']:
@@ -177,7 +153,7 @@ def parse_and_validate_file_fields(file_fields:FileFields):
         requirement_options = [None for _ in range(number_of_entries)]
     
 
-    #edit
+    #-edit
     option_description = ['default' for _ in range(number_of_entries)]
     OrgTemplateEvaluationRequirementOptionsService().add_file_entries(
         file_id=file_id,
